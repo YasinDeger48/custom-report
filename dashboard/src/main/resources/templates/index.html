@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Execution Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        select, button { margin-top: 10px; padding: 5px; }
+        .screenshot-img { max-width: 200px; max-height: 120px; }
+    </style>
+</head>
+<body>
+<h2>Test Execution Dashboard</h2>
+
+<label for="runSelect">Koşum Seç (RunID):</label>
+<select id="runSelect"></select>
+
+<button onclick="downloadPdf()">PDF İndir</button>
+
+<table id="results">
+    <thead>
+    <tr>
+        <th>Scenario</th>
+        <th>Status</th>
+        <th>Duration (ms)</th>
+        <th>Timestamp</th>
+        <th>Screenshot</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    let executions = [];
+
+function loadRunIds() {
+    fetch('/executions')
+        .then(res => res.json())
+        .then(data => {
+            if (!Array.isArray(data)) {
+                console.error("Sunucudan array yerine:", data);
+                return;
+            }
+            executions = data;
+            const runIds = [...new Set(data.filter(e => e.runId).map(e => e.runId))];
+            const select = document.getElementById('runSelect');
+            select.innerHTML = '';
+            runIds.forEach(runId => {
+                const opt = document.createElement('option');
+                opt.value = runId;
+                opt.textContent = runId;
+                select.appendChild(opt);
+            });
+            if (runIds.length > 0) {
+                loadTable(runIds[0]);
+            }
+        })
+        .catch(err => console.error("Veri yüklenemedi:", err));
+}
+
+
+function loadTable(runId) {
+    const tbody = document.querySelector("#results tbody");
+    tbody.innerHTML = '';
+    executions
+        .filter(e => e.runId === runId)
+        .forEach(e => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${e.scenario}</td>
+                <td>${e.status}</td>
+                <td>${e.duration}</td>
+                <td>${e.timestamp}</td>
+                <td>${e.screenshot ? `<img src="${e.screenshot}" class="screenshot-img"/>` : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+}
+
+    document.getElementById('runSelect').addEventListener('change', function() {
+        loadTable(this.value);
+    });
+
+    function downloadPdf() {
+        window.location.href = "/pdf";
+    }
+
+    loadRunIds();
+</script>
+</body>
+</html>
