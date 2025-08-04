@@ -11,15 +11,11 @@ public class Hooks {
 
     private WebDriver driver;
     private MongoReportHook mongoReportHook;
-    private FunnyListener funnyListener;
 
     @Before
-    public void setUp(Scenario scenario) {
+    public void setUp() {
         driver = DriverFactory.getDriver();
-
-        funnyListener = new FunnyListener(); // FunnyListener objesi
-        mongoReportHook = new MongoReportHook(driver, funnyListener);
-
+        mongoReportHook = new MongoReportHook(driver);
         mongoReportHook.startTimer();
     }
 

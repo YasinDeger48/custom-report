@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Test Execution Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { padding: 0; margin: 0; font-family: Arial, sans-serif; background-color: #f8f9fa; }
+        header {
+          background-color: #003366;
+          color: white;
+          padding: 12px 20px;
+          font-size: 24px;
+          font-weight: 600;
+        }
+        nav {
+          background-color: #f1f1f1;
+          padding: 10px 20px;
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          flex-wrap: wrap;
+        }
+        main {
+          padding: 20px;
+        }
+        .chart-container {
+          background: white;
+          border-radius: 8px;
+          padding: 10px 15px;
+          box-shadow: 0 0 10px rgb(0 0 0 / 0.1);
+        }
+        .chart-row {
+          display: flex;
+          gap: 15px;
+          flex-wrap: wrap;
+        }
+        .chart-box {
+          flex: 1 1 30%;
+          min-width: 280px;
+        }
+        .btn-pdf {
+          white-space: nowrap;
+        }
+        #detailsPanel {
+          margin-top: 20px;
+          background: white;
+          border-radius: 8px;
+          padding: 15px;
+          box-shadow: 0 0 10px rgb(0 0 0 / 0.1);
+          display: none;
+        }
+        table th, table td {
+          vertical-align: middle !important;
+          word-break: break-word;
+        }
+        .screenshot-img {
+          max-width: 80px;
+          max-height: 50px;
+          cursor: pointer;
+        }
+        .error-text {
+          color: #d9534f;
+          white-space: normal;
+          max-width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="your-company-logo.png" alt="Logo" style="height:32px; vertical-align: middle; margin-right: 10px;">
+    Test Execution Dashboard
+</header>
+
+<nav>
+    <div>
+        <label for="runSelect" class="form-label me-2">Koşum Seç (RunID):</label>
+        <select id="runSelect" class="form-select d-inline-block" style="width: 220px;"></select>
+    </div>
+
+    <div>
+        <label for="statusFilter" class="form-label me-2">Test Durumu:</label>
+        <select id="statusFilter" class="form-select d-inline-block" style="width: 140px;">
+            <option value="all" selected>Tümü</option>
+            <option value="PASSED">Başarılı</option>
+            <option value="FAILED">Başarısız</option>
+        </select>
+    </div>
+
+    <button class="btn btn-primary btn-pdf ms-auto" onclick="downloadPdf()">PDF İndir</button>
+</nav>
+
+<main>
+    <div class="chart-row">
+        <div class="chart-box chart-container">
+            <canvas id="statusPieChart" aria-label="Başarı Oranı" role="img"></canvas>
+        </div>
+        <div class="chart-box chart-container">
+            <canvas id="durationHistogram" aria-label="Süre Dağılımı" role="img"></canvas>
+        </div>
+        <div class="chart-box chart-container">
+            <canvas id="scenarioBarChart" aria-label="Senaryo Başarıları" role="img"></canvas>
+        </div>
+    </div>
+
+    <button class="btn btn-outline-secondary mt-3" onclick="toggleDetails()">Detaylı Test Sonuçlarını Göster / Gizle</button>
+
+    <div id="detailsPanel">
+        <table class="table table-bordered table-hover mt-2">
+            <thead class="table-light">
+            <tr>
+                <th>Scenario</th>
+                <th>Status</th>
+                <th>Duration (ms)</th>
+                <th>Timestamp</th>
+                <th>Screenshot</th>
+                <th>Hata Mesajı</th>
+            </tr>
+            </thead>
+            <tbody id="results"></tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+    let executions = [];
+    let pieChart, histogramChart, scenarioChart;
+
+    function fetchExecutions(runId) {
+      return fetch('/executions?runId=' + encodeURIComponent(runId || '')).then(res => res.json());
+    }
+
+    function renderPieChart(data) {
+      const ctx = document.getElementById('statusPieChart').getContext('2d');
+      const counts = { PASSED: 0, FAILED: 0 };
+      data.forEach(e => { if(e.status in counts) counts[e.status]++; });
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Passed', 'Failed'],
+          datasets: [{
+            data: [counts.PASSED, counts.FAILED],
+            backgroundColor: ['#28a745', '#dc3545'],
+            hoverOffset: 10
+          }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+      });
+    }
+
+    function renderDurationHistogram(data) {
+      const ctx = document.getElementById('durationHistogram').getContext('2d');
+      const durations = data.map(e => e.duration);
+      const bins = Array(10).fill(0);
+      const maxDur = Math.max(...durations, 1000);
+      durations.forEach(d => {
+        const bin = Math.min(Math.floor((d / maxDur) * bins.length), bins.length - 1);
+        bins[bin]++;
+      });
+
+      if (histogramChart) histogramChart.destroy();
+      histogramChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: bins.map((_, i) => `${Math.floor(i * maxDur / bins.length)}-${Math.floor((i + 1) * maxDur / bins.length)} ms`),
+          datasets: [{
+            label: 'Test Duration Distribution',
+            data: bins,
+            backgroundColor: '#007bff',
+          }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+    }
+
+    function renderScenarioBarChart(data) {
+      const ctx = document.getElementById('scenarioBarChart').getContext('2d');
+      const scenarioCounts = {};
+      data.forEach(e => {
+        if (!scenarioCounts[e.scenario]) scenarioCounts[e.scenario] = { PASSED: 0, FAILED: 0 };
+        scenarioCounts[e.scenario][e.status] = (scenarioCounts[e.scenario][e.status] || 0) + 1;
+      });
+
+      const labels = Object.keys(scenarioCounts);
+      const passedData = labels.map(label => scenarioCounts[label].PASSED || 0);
+      const failedData = labels.map(label => scenarioCounts[label].FAILED || 0);
+
+      if (scenarioChart) scenarioChart.destroy();
+      scenarioChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Passed', data: passedData, backgroundColor: '#28a745' },
+            { label: 'Failed', data: failedData, backgroundColor: '#dc3545' }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top' } },
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    function loadRunIds() {
+      fetch('/executions')
+        .then(res => res.json())
+        .then(data => {
+          executions = data;
+          const runIds = [...new Set(data.map(e => e.runId))];
+          const select = document.getElementById('runSelect');
+          select.innerHTML = '';
+          runIds.forEach(runId => {
+            const opt = document.createElement('option');
+            opt.value = runId;
+            opt.textContent = runId;
+            select.appendChild(opt);
+          });
+          if (runIds.length > 0) {
+            loadDataForRun(runIds[0]);
+          }
+        });
+    }
+
+    function loadDataForRun(runId) {
+      fetchExecutions(runId).then(data => {
+        executions = data;
+        updateDashboard();
+      });
+    }
+
+    function updateDashboard() {
+      const runId = document.getElementById('runSelect').value;
+      const statusFilter = document.getElementById('statusFilter').value;
+      const filtered = executions.filter(e => (statusFilter === 'all' || e.status === statusFilter));
+      renderPieChart(filtered);
+      renderDurationHistogram(filtered);
+      renderScenarioBarChart(filtered);
+      renderTable(filtered);
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById('results');
+      tbody.innerHTML = '';
+      data.forEach(e => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${e.scenario}</td>
+          <td>${e.status}</td>
+          <td>${e.duration}</td>
+          <td>${e.timestamp}</td>
+          <td>${e.screenshot ? `<img src="${e.screenshot}" class="screenshot-img" onclick="window.open('${e.screenshot}', '_blank')" />` : '-'}</td>
+          <td class="error-text">${e.error ? e.error : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('runSelect').addEventListener('change', e => {
+      loadDataForRun(e.target.value);
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', () => {
+      updateDashboard();
+    });
+
+    function toggleDetails() {
+      const panel = document.getElementById('detailsPanel');
+      panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function downloadPdf() {
+      window.location.href = "/pdf";
+    }
+
+    loadRunIds();
+
+</script>
+
+</body>
+</html>

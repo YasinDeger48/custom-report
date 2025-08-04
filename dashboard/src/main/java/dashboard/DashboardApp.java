@@ -62,7 +62,7 @@ public class DashboardApp {
                     String filePath = "test-report.pdf";
                     List<Execution> list = service.getExecutions(null, null, null, runId);
 
-                    PdfExporter.export(list, filePath);
+                    PdfExporter.export(list, filePath,runId);
 
                     res.header("Content-Disposition", "attachment; filename=test-report.pdf");
                     res.type("application/pdf");

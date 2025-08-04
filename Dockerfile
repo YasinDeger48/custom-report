@@ -1,6 +1,9 @@
-FROM mongo:6.0
+FROM openjdk:17-jdk-slim
 
-# Opsiyonel: Veritabanı, kullanıcı vs. ön tanımlı oluşturmak için init script koyabilirsin
-# COPY ./init.js /docker-entrypoint-initdb.d/
+WORKDIR /app
 
-EXPOSE 27017
+COPY dashboard/target/dashboard.jar app.jar
+
+EXPOSE 6666
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

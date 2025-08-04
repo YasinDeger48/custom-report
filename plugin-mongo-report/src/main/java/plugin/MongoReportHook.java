@@ -6,16 +6,24 @@ import org.openqa.selenium.WebDriver;
 public class MongoReportHook {
 
     private final WebDriver driver;
-    private final FunnyListener funnyListener;
     private long startTime;
 
-    public MongoReportHook(WebDriver driver, FunnyListener funnyListener) {
+    public MongoReportHook(WebDriver driver) {
         this.driver = driver;
-        this.funnyListener = funnyListener;
     }
 
     public void startTimer() {
         startTime = System.currentTimeMillis();
+    }
+
+    // Kısaltma fonksiyonu buraya kopyala (aynı MongoReporter'dakinin aynısı)
+    private String extractSimpleErrorMessage(String errorMessage) {
+        if (errorMessage == null || errorMessage.isEmpty()) return null;
+
+        if (errorMessage.length() > 150) {
+            return errorMessage.substring(0, 147) + "...";
+        }
+        return errorMessage;
     }
 
     public void afterScenario(Scenario scenario) {
@@ -32,8 +40,13 @@ public class MongoReportHook {
 
         String errorMessage = null;
         if (scenario.isFailed()) {
-            // FunnyListener'dan hatayı al
-            errorMessage = funnyListener.getErrorForScenario(scenario.getId().toString());
+            errorMessage = FunnyListener.finalResult;
+            if (errorMessage == null || errorMessage.isEmpty()) {
+                errorMessage = "Hata mesajı alınamadı.";
+            } else {
+                errorMessage = extractSimpleErrorMessage(errorMessage);
+            }
+            System.out.println("[MongoReportHook] Kısaltılmış errorMessage: " + errorMessage);
         }
 
         MongoReporter.logScenario(scenarioName, status, duration, screenshotPath, errorMessage);

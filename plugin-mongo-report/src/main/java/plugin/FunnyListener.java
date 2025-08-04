@@ -2,12 +2,11 @@ package plugin;
 
 import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.*;
-import org.openqa.selenium.WebDriver;
-
 import java.util.HashMap;
 import java.util.Map;
 
 public class FunnyListener implements ConcurrentEventListener {
+    public static String finalResult;
 
     private final Map<String, String> scenarioErrors = new HashMap<>();
 
@@ -24,13 +23,14 @@ public class FunnyListener implements ConcurrentEventListener {
             String scenarioId = event.getTestCase().getId().toString();
             Throwable error = result.getError();
             if (error != null) {
-                // En son hata mesajını kaydet
-                scenarioErrors.put(scenarioId, error.getMessage());
+                String errorMessage = error.getMessage();
+                scenarioErrors.put(scenarioId, errorMessage);
+                finalResult = errorMessage;
+                System.out.println("[FunnyListener] finalResult set: " + finalResult);
             }
         }
     }
 
-    // Hata mesajını getirmek için metod
     public String getErrorForScenario(String scenarioId) {
         return scenarioErrors.get(scenarioId);
     }
