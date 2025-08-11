@@ -7,19 +7,19 @@ import com.lowagie.text.pdf.*;
 import dashboard.model.Execution;
 
 import java.awt.*;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 public class PdfExporter {
 
-    public static void export(List<Execution> executions, String filePath, String runId) throws Exception {
+    public static byte[] export(List<Execution> executions, String runId) throws Exception {
         Document document = new Document(PageSize.A4.rotate(), 36, 36, 54, 36);
-
-        PdfWriter.getInstance(document, new FileOutputStream(filePath));
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PdfWriter.getInstance(document, baos);
         document.open();
 
         try {
-            Image logo = Image.getInstance(PdfExporter.class.getClassLoader().getResource("templates/logo.png"));
+            Image logo = Image.getInstance(PdfExporter.class.getClassLoader().getResource("public/logo.png"));
             logo.scaleToFit(120, 60);
             logo.setAlignment(Image.ALIGN_LEFT);
             document.add(logo);
@@ -38,27 +38,29 @@ public class PdfExporter {
         runIdParagraph.setSpacingAfter(20);
         document.add(runIdParagraph);
 
-        PdfPTable table = new PdfPTable(new float[]{3, 1, 1, 2, 4});
+        // Screenshot kolonu çıkarıldığı için tablo 5 sütun
+        PdfPTable table = new PdfPTable(new float[]{3, 1, 1, 2, 3});
         table.setWidthPercentage(100);
 
         addHeaderCell(table, "Scenario");
         addHeaderCell(table, "Status");
         addHeaderCell(table, "Duration (ms)");
         addHeaderCell(table, "Timestamp");
-        //addHeaderCell(table, "Screenshot");
         addHeaderCell(table, "Error Message");
+        // Screenshot başlığı kaldırıldı
 
         for (Execution e : executions) {
             addCell(table, e.getScenario() != null ? e.getScenario() : "-");
             addStatusCell(table, e.getStatus());
             addCell(table, String.valueOf(e.getDuration()));
             addCell(table, e.getTimestamp() != null ? e.getTimestamp().toString() : "-");
-          //:(  addCell(table, e.getScreenshot() != null ? "Available" : "-");
             addCell(table, e.getError() != null ? e.getError() : "-");
+            // Screenshot hücresi tamamen çıkarıldı
         }
 
         document.add(table);
         document.close();
+        return baos.toByteArray();
     }
 
     private static void addHeaderCell(PdfPTable table, String text) {
@@ -84,13 +86,13 @@ public class PdfExporter {
         cell.setPadding(5);
 
         if ("PASSED".equalsIgnoreCase(status)) {
-            cell.setBackgroundColor(new Color(25, 135, 84));  // Yeşil
+            cell.setBackgroundColor(new Color(25, 135, 84));
         } else if ("FAILED".equalsIgnoreCase(status)) {
-            cell.setBackgroundColor(new Color(220, 53, 69));  // Kırmızı
+            cell.setBackgroundColor(new Color(220, 53, 69));
         } else if ("SKIPPED".equalsIgnoreCase(status)) {
-            cell.setBackgroundColor(new Color(255, 193, 7));  // Sarı
+            cell.setBackgroundColor(new Color(255, 193, 7));
         } else {
-            cell.setBackgroundColor(new Color(211, 211, 211)); // Gri
+            cell.setBackgroundColor(new Color(211, 211, 211));
         }
 
         table.addCell(cell);

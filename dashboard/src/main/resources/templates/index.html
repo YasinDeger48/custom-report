@@ -1,15 +1,10 @@
-<!DOCTYPE html>
-<html lang="tr">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{common/header :: header('Dashboard')}">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Test Execution Dashboard</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
+    
+    <th:block th:fragment="additionalCss">
+        <style>
         body {
           min-height: 100vh;
           display: flex;
@@ -36,6 +31,32 @@
           width: 70px;
         }
 
+        #sidebar.collapsed .logo,
+        #sidebar.collapsed .nav-link span {
+            display: none;
+        }
+
+        #sidebar.collapsed .nav-link.active .vertical-text {
+            display: block;
+        }
+
+        #sidebar.collapsed .nav-link {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 150px;
+        }
+
+        .nav-link .vertical-text {
+            display: none;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-size: 1rem;
+        }
+
         #sidebar .nav-link {
           color: #000;
           padding-left: 1rem;
@@ -49,10 +70,6 @@
         #sidebar.collapsed .nav-link {
           padding-left: 0 !important;
           justify-content: center;
-        }
-
-        #sidebar.collapsed .nav-link span {
-          display: none;
         }
 
         #sidebar .nav-link.active, #sidebar .nav-link:hover {
@@ -71,47 +88,29 @@
           transition: font-size 0.3s ease, padding 0.3s ease;
         }
 
-        #sidebar.collapsed .logo {
-          font-size: 1rem;
-          padding: 0.75rem 0;
-          letter-spacing: 1px;
+        .toggle-btn-container {
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            z-index: 1050;
         }
 
         .toggle-btn {
-          position: absolute;
-          top: 10px;
-          right: -40px;
-          background: white;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          padding: 5px 8px;
-          cursor: pointer;
-          font-size: 18px;
-          z-index: 1100;
-          transition: right 0.3s ease;
-        }
-
-        #sidebar:not(.collapsed) + .toggle-btn {
-          right: -40px;
-        }
-
-        #sidebar.collapsed + .toggle-btn {
-          right: 10px;
+            font-size: 1.5rem;
+            padding: 0.5rem 0.75rem;
         }
 
         #main-content {
           margin-left: 250px;
           padding: 20px;
-          background: #f8f9fa;
-          min-height: 100vh;
           transition: margin-left 0.3s ease;
-          flex-grow: 1;
+          width: 100%;
           overflow-y: auto;
-          min-width: 0;
+          min-height: 100vh;
         }
 
-        #sidebar.collapsed ~ #main-content {
-          margin-left: 70px;
+        #main-content.collapsed {
+            margin-left: 70px;
         }
 
         @media (max-width: 768px) {
@@ -124,14 +123,10 @@
           }
           #sidebar.collapsed {
             left: 0;
-            width: 250px;
+            width: 70px;
           }
           #sidebar.collapsed ~ #main-content {
-            margin-left: 0;
-          }
-          .toggle-btn {
-            top: 10px;
-            right: 10px;
+            margin-left: 70px;
           }
         }
 
@@ -170,26 +165,52 @@
           color: #333;
           padding: 10px;
         }
-    </style>
+        .details-content div {
+            margin-bottom: 4px;
+        }
+        pre {
+            margin-bottom: 0;
+        }
+
+        </style>
+    </th:block>
 </head>
 <body>
-
-<!-- Sidebar -->
+<!-- Include Sidebar -->
+<div th:replace="~{common/sidebar :: sidebar(activePage='dashboard', sidebarCollapsed=false, content=~{::#pageContent})}">
+    <!-- Page Content Fragment -->
+    <div id="pageContent" th:fragment="content">
 <nav id="sidebar" class="">
     <div class="header d-flex justify-content-between align-items-center px-3">
         <div class="logo">
-            <img src="/logo.png" alt="Şirket Logo" style="max-width: 100%; height: auto;" />
+            <img th:src="${settings != null ? settings.logoUrl : '/logo.png'}" 
+                 alt="Company Logo" 
+                 th:style="'max-width: ' + ${settings != null ? settings.logoWidth : '150'} + 'px; height: ' + ${settings != null ? settings.logoHeight : '50'} + 'px;'"
+                 style="max-width: 100%; height: auto;" />
         </div>
-        <button class="toggle-btn btn btn-sm btn-light" id="sidebarToggle" aria-label="Toggle Menu">&#9776;</button>
     </div>
     <ul class="nav flex-column p-2">
-        <li class="nav-item"><a class="nav-link active" href="index.html"><span>Dashboard</span></a></li>
-        <li class="nav-item"><a class="nav-link" href="report.html"><span>Reports</span></a></li>
+        <li class="nav-item"><a class="nav-link active" href="/dashboard">
+            <span>Dashboard</span>
+            <span class="vertical-text">DASHBOARD</span>
+        </a></li>
+        <li class="nav-item"><a class="nav-link" href="/reports">
+            <span>Reports</span>
+            <span class="vertical-text">REPORTS</span>
+        </a></li>
+        <li class="nav-item"><a class="nav-link" href="/settings">
+            <span>Settings</span>
+            <span class="vertical-text">SETTINGS</span>
+        </a></li>
     </ul>
 </nav>
 
 <!-- Main content -->
 <div id="main-content">
+    <div class="toggle-btn-container">
+        <button class="toggle-btn btn btn-sm btn-light" id="sidebarToggle" aria-label="Toggle Menu">&#9776;</button>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h2 class="mb-0">Test Execution Dashboard</h2>
         <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -246,8 +267,6 @@
                 <th>Status</th>
                 <th>Duration (ms)</th>
                 <th>Timestamp</th>
-                <th>Screenshot</th>
-                <th>Hata Mesajı</th>
             </tr>
             </thead>
             <tbody></tbody>
@@ -255,17 +274,17 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    document.getElementById('sidebarToggle').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('main-content').classList.toggle('collapsed');
+    });
+
     let executions = [];
     let filteredExecutions = [];
     let statusChart, performanceChart, ratioChart;
-
-    // Sidebar toggle logic
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebarToggle');
-    toggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
-    });
 
     // Status Distribution chart: ince renkli barlar, isim yok
     function createStatusChart(ctx, data) {
@@ -395,7 +414,7 @@
 
     async function loadExecutions() {
       try {
-        const res = await fetch('/executions');
+        const res = await fetch('/api/executions');
         const data = await res.json();
 
         if (!Array.isArray(data)) {
@@ -493,25 +512,47 @@
           <td>${item.status}</td>
           <td>${item.duration}</td>
           <td>${new Date(item.timestamp).toLocaleString()}</td>
-          <td>${item.screenshot ? `<img src="${item.screenshot}" class="screenshot-img" />` : '-'}</td>
-          <td class="error-cell">-</td>
         `;
         tbody.appendChild(tr);
 
         const detailsTr = document.createElement('tr');
         detailsTr.classList.add('details-row');
         detailsTr.style.display = 'none';
+
+
         detailsTr.innerHTML = `
-          <td colspan="7" class="details-content">
-            <strong>Detaylar:</strong><br/>
-            Senaryo: ${item.scenario}<br/>
-            Durum: ${item.status}<br/>
-            Süre: ${item.duration} ms<br/>
-            Zaman: ${new Date(item.timestamp).toLocaleString()}<br/>
-            <strong>Hata Mesajı:</strong> ${item.error ? item.error : '-'}<br/>
-            ${item.screenshot ? `<img src="${item.screenshot}" style="max-width: 400px; max-height: 250px; margin-top: 10px;" />` : ''}
-          </td>
-        `;
+  <td colspan="5" class="details-content">
+    <div><strong>Senaryo:</strong> ${item.scenario}</div>
+    <div><strong>Durum:</strong> ${item.status}</div>
+    <div><strong>Süre:</strong> ${item.duration} ms</div>
+    <div><strong>Zaman:</strong> ${new Date(item.timestamp).toLocaleString()}</div>
+
+    <div style="margin-top: 6px;">
+      <table class="table table-sm table-bordered">
+        <thead class="table-light">
+          <tr><th>Hata Mesajı</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="white-space: pre-wrap; font-size: 13px; color: #c00; background-color: #fff8f8;">
+              ${item.error ? item.error : '-'}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    ${item.screenshot ? `
+      <div class="mt-3">
+        <label class="form-label"><strong>Screenshot:</strong></label><br/>
+        <img src="${item.screenshot}" class="img-thumbnail" style="max-width: 400px; max-height: 250px;" />
+      </div>
+    ` : ''}
+  </td>
+`;
+
+
+
         tbody.appendChild(detailsTr);
       });
 
@@ -562,5 +603,287 @@
 
 </script>
 
+    </div>
+</div>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Page Specific Scripts -->
+<script th:inline="javascript">
+    // Status Distribution chart: ince renkli barlar, isim yok
+    function createStatusChart(ctx, data) {
+        const labels = Object.keys(data);
+        const values = Object.values(data);
+        
+        // Renkleri belirle
+        const backgroundColors = [
+            'rgba(40, 167, 69, 0.2)',  // Yeşil
+            'rgba(220, 53, 69, 0.2)',  // Kırmızı
+            'rgba(23, 162, 184, 0.2)', // Turkuaz
+            'rgba(255, 193, 7, 0.2)',  // Sarı
+            'rgba(108, 117, 125, 0.2)' // Gri
+        ];
+        
+        const borderColors = [
+            'rgba(40, 167, 69, 1)',
+            'rgba(220, 53, 69, 1)',
+            'rgba(23, 162, 184, 1)',
+            'rgba(255, 193, 7, 1)',
+            'rgba(108, 117, 125, 1)'
+        ];
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Test Case Count',
+                    data: values,
+                    backgroundColor: backgroundColors.slice(0, values.length),
+                    borderColor: borderColors.slice(0, values.length),
+                    borderWidth: 1,
+                    barThickness: 30, // Çubuk kalınlığı
+                    borderRadius: 4,  // Hafif yuvarlak köşeler
+                    borderSkipped: false // Tüm köşeleri yuvarla
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y} test case`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createPerformanceChart(ctx, labels, durations) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Duration (ms)',
+                    data: durations,
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createRatioChart(ctx, passed, failed) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Passed', 'Failed'],
+                datasets: [{
+                    data: [passed, failed],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(220, 53, 69, 0.8)'
+                    ],
+                    borderWidth: 0,
+                    cutout: '70%'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            }
+        });
+    }
+
+    async function loadExecutions() {
+        try {
+            const response = await fetch('/api/executions');
+            const data = await response.json();
+            
+            // Update run select options
+            const runSelect = document.getElementById('runSelect');
+            runSelect.innerHTML = '';
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Tüm Test Çalıştırmaları';
+            runSelect.appendChild(defaultOption);
+            
+            // Add run options
+            data.forEach(execution => {
+                const option = document.createElement('option');
+                option.value = execution.runId;
+                option.textContent = execution.runId;
+                runSelect.appendChild(option);
+            });
+            
+            // Load initial data
+            updateDashboard();
+        } catch (error) {
+            console.error('Error loading executions:', error);
+        }
+    }
+
+    async function updateDashboard() {
+        const runId = document.getElementById('runSelect').value;
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        let url = '/api/executions';
+        
+        if (runId) {
+            url += `/${runId}`;
+        }
+        
+        try {
+            const response = await fetch(url);
+            const data = runId ? [await response.json()] : await response.json();
+            
+            // Filter data by search term if provided
+            const filteredData = searchTerm ? 
+                data.filter(execution => 
+                    execution.runId.toLowerCase().includes(searchTerm) ||
+                    execution.environment?.toLowerCase().includes(searchTerm) ||
+                    execution.platform?.toLowerCase().includes(searchTerm)
+                ) : data;
+            
+            if (filteredData.length === 0) {
+                document.getElementById('noDataAlert').classList.remove('d-none');
+                document.getElementById('dashboardContent').classList.add('d-none');
+                return;
+            }
+            
+            // Show content and hide no data alert
+            document.getElementById('noDataAlert').classList.add('d-none');
+            document.getElementById('dashboardContent').classList.remove('d-none');
+            
+            // Update charts and table with filtered data
+            updateCharts(filteredData);
+            updateResultsTable(filteredData);
+            
+        } catch (error) {
+            console.error('Error updating dashboard:', error);
+            document.getElementById('noDataAlert').classList.remove('d-none');
+            document.getElementById('dashboardContent').classList.add('d-none');
+        }
+    }
+
+    function updateResultsTable(data) {
+        const tbody = document.querySelector('#resultsTable tbody');
+        tbody.innerHTML = '';
+        
+        data.forEach(execution => {
+            const row = document.createElement('tr');
+            row.style.cursor = 'pointer';
+            row.onclick = () => window.location.href = `/reports/${execution.runId}`;
+            
+            // Format date
+            const date = new Date(execution.startTime);
+            const formattedDate = date.toLocaleString('tr-TR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Calculate duration
+            const durationMs = new Date(execution.endTime) - new Date(execution.startTime);
+            const durationSec = (durationMs / 1000).toFixed(1);
+            
+            // Status badge
+            let statusBadge = '';
+            if (execution.failed > 0) {
+                statusBadge = '<span class="badge bg-danger">Failed</span>';
+            } else if (execution.passed > 0) {
+                statusBadge = '<span class="badge bg-success">Passed</span>';
+            } else {
+                statusBadge = '<span class="badge bg-secondary">No Tests</span>';
+            }
+            
+            row.innerHTML = `
+                <td>${execution.runId}</td>
+                <td>${formattedDate}</td>
+                <td>${execution.environment || '-'}</td>
+                <td>${execution.platform || '-'}</td>
+                <td>${execution.totalScenarios || 0}</td>
+                <td>${execution.passed || 0}</td>
+                <td>${execution.failed || 0}</td>
+                <td>${durationSec} s</td>
+                <td>${statusBadge}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadExecutions();
+        
+        // Add event listeners
+        document.getElementById('runSelect').addEventListener('change', updateDashboard);
+        document.getElementById('searchInput').addEventListener('input', updateDashboard);
+        
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadExecutions();
+        });
+    });
+</script>
 </body>
 </html>

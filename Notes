@@ -1,0 +1,51 @@
+. JAR dosyasını 1.0.0 olarak yeniden yükle
+
+mvn clean install
+
+dashboard için:
+
+mvn install:install-file \
+  -Dfile=dashboard/target/dashboard-1.0.0.jar \
+  -DgroupId=com.yasindeger \
+  -DartifactId=dashboard \
+  -Dversion=1.0.0 \
+  -Dpackaging=jar
+
+
+
+plugin-mongo-report için:
+
+mvn install:install-file \
+  -Dfile=plugin-mongo-report/target/plugin-mongo-report-1.0.0.jar \
+  -DgroupId=com.yasindeger \
+  -DartifactId=plugin-mongo-report \
+  -Dversion=1.0.0 \
+  -Dpackaging=jar
+
+
+
+  <dependency>
+    <groupId>com.yasindeger</groupId>
+    <artifactId>dashboard</artifactId>
+    <version>1.0.0</version>
+  </dependency>
+
+  <dependency>
+    <groupId>com.yasindeger</groupId>
+    <artifactId>plugin-mongo-report</artifactId>
+    <version>1.0.0</version>
+  </dependency>
+
+
+Mongoyu başlatmak için:
+
+1. docker run -d -p 6666:6666 --name dashboard-container my-dashboard:1.0
+
+DB Temizliği için:
+
+  1. docker exec -it mongo-db mongosh -u admin -p admin123 --authenticationDatabase admin
+  2. show dbs
+  3. use test-report-db
+  4.
+  db.getCollectionNames().forEach(function(c) {
+  db.getCollection(c).drop();})

@@ -31,6 +31,36 @@
           padding-top: 1rem;
         }
 
+        #sidebar.collapsed {
+            width: 70px;
+        }
+
+        #sidebar.collapsed .logo,
+        #sidebar.collapsed .nav-link span {
+            display: none;
+        }
+
+        #sidebar.collapsed .nav-link.active .vertical-text {
+            display: block;
+        }
+
+        #sidebar.collapsed .nav-link {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 150px;
+        }
+
+        .nav-link .vertical-text {
+            display: none;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-size: 1rem;
+        }
+
         #sidebar .logo {
           text-align: center;
           margin-bottom: 1rem;
@@ -59,25 +89,30 @@
         #main-content {
           margin-left: 250px;
           padding: 20px;
-          flex-grow: 1;
+          transition: margin-left 0.3s ease;
+          width: 100%;
           overflow-y: auto;
-          min-width: 0;
+          min-height: 100vh;
         }
 
-        #runIdButtons {
+        #main-content.collapsed {
+            margin-left: 70px;
+        }
+
+        .toggle-btn-container {
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            z-index: 1050;
+        }
+
+        .toggle-btn {
+            font-size: 1.5rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        #runIdContainer {
           margin-bottom: 20px;
-        }
-
-        #runIdButtons button {
-          margin: 3px;
-          padding: 5px 10px;
-          font-size: 0.9rem;
-        }
-
-        #runIdButtons button.active {
-          background-color: #0d6efd;
-          color: white;
-          border-color: #0d6efd;
         }
 
         .error-cell {
@@ -119,39 +154,61 @@
         <img style="max-width: 80%; height: auto;" src="/logo.png" alt="Şirket Logo" />
     </div>
     <ul class="nav flex-column p-2">
-        <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
-        <li class="nav-item"><a class="nav-link active" href="report.html">Reports</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard">
+            <span>Dashboard</span>
+            <span class="vertical-text">DASHBOARD</span>
+        </a></li>
+        <li class="nav-item"><a class="nav-link active" href="/reports">
+            <span>Reports</span>
+            <span class="vertical-text">REPORTS</span>
+        </a></li>
     </ul>
 </nav>
 
 <!-- Main content -->
 <div id="main-content">
-    <h1>Test Reports by Run ID</h1>
+    <div class="toggle-btn-container">
+        <button class="toggle-btn btn btn-sm btn-light" id="sidebarToggle" aria-label="Toggle Menu">&#9776;</button>
+    </div>
 
-    <div id="runIdButtons" class="mb-3"></div>
+    <div class="container-fluid">
+        <h1 class="mt-4">Test Reports by Run ID</h1>
 
-    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
-        <table class="table table-bordered table-hover" id="resultsTable">
-            <thead class="table-light">
-            <tr>
-                <th></th>
-                <th>Scenario</th>
-                <th>Status</th>
-                <th>Duration (ms)</th>
-                <th>Timestamp</th>
-                <th>Screenshot</th>
-                <th>Error Message</th>
-            </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div id="runIdContainer" class="mb-3"></div>
+
+        <div id="actionButtons" class="mb-3" style="display: none;">
+            <button id="downloadPdfBtn" class="btn btn-success btn-sm">Download PDF</button>
+            <button id="deleteSelectedBtn" class="btn btn-danger btn-sm">Delete Selected</button>
+        </div>
+
+        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table table-bordered table-hover" id="resultsTable">
+                <thead class="table-light">
+                <tr>
+                    <th></th>
+                    <th>Scenario</th>
+                    <th>Status</th>
+                    <th>Duration (ms)</th>
+                    <th>Timestamp</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    document.getElementById('sidebarToggle').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('main-content').classList.toggle('collapsed');
+    });
+
     let executions = [];
     let filteredExecutions = [];
-    const runIdButtonsDiv = document.getElementById('runIdButtons');
+    let activeRunId = null;
+    const runIdContainerDiv = document.getElementById('runIdContainer');
     const tbody = document.querySelector('#resultsTable tbody');
 
     async function loadExecutions() {
@@ -170,12 +227,13 @@
         let runIds = [...new Set(executions.map(e => e.runId).filter(r => r))];
         runIds = runIds.slice(-20); // son 20 runId
 
-        renderRunIdButtons(runIds);
+        renderRunIdCheckboxes(runIds);
 
         // Varsayılan olarak son runId seçili
         if (runIds.length > 0) {
-          filterAndRender(runIds[runIds.length - 1]);
-          setActiveButton(runIds[runIds.length - 1]);
+          const latestRunId = runIds[runIds.length - 1];
+          filterAndRender(latestRunId);
+          setActiveLabel(latestRunId);
         }
 
       } catch (e) {
@@ -183,30 +241,66 @@
       }
     }
 
-    function renderRunIdButtons(runIds) {
-      runIdButtonsDiv.innerHTML = '';
+    function renderRunIdCheckboxes(runIds) {
+      runIdContainerDiv.innerHTML = '';
       runIds.forEach(runId => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn btn-outline-primary btn-sm';
-        btn.textContent = runId;
-        btn.onclick = () => {
-          filterAndRender(runId);
-          setActiveButton(runId);
+        const formCheck = document.createElement('div');
+        formCheck.className = 'form-check form-check-inline';
+
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'form-check-input';
+        input.value = runId;
+        input.id = `check-${runId}`;
+
+        const label = document.createElement('label');
+        label.className = 'form-check-label';
+        label.htmlFor = `check-${runId}`;
+        label.textContent = runId;
+        label.style.cursor = 'pointer';
+        label.onclick = (e) => {
+            e.preventDefault(); // prevent label from toggling checkbox
+            filterAndRender(runId);
+            setActiveLabel(runId);
         };
-        runIdButtonsDiv.appendChild(btn);
+
+        formCheck.appendChild(input);
+        formCheck.appendChild(label);
+        runIdContainerDiv.appendChild(formCheck);
       });
+
+      // Add action buttons logic
+      const actionButtonsDiv = document.getElementById('actionButtons');
+      if (runIds.length > 0) {
+          actionButtonsDiv.style.display = 'block';
+      } else {
+          actionButtonsDiv.style.display = 'none';
+      }
+
+      document.getElementById('deleteSelectedBtn').onclick = deleteSelectedReports;
     }
 
-    function setActiveButton(runId) {
-      [...runIdButtonsDiv.children].forEach(btn => {
-        btn.classList.toggle('active', btn.textContent === runId);
+    function setActiveLabel(runId) {
+      document.querySelectorAll('#runIdContainer .form-check-label').forEach(label => {
+          if (label.textContent === runId) {
+              label.style.fontWeight = 'bold';
+              label.style.textDecoration = 'underline';
+          } else {
+              label.style.fontWeight = 'normal';
+              label.style.textDecoration = 'none';
+          }
       });
     }
 
     function filterAndRender(runId) {
+      activeRunId = runId;
       filteredExecutions = executions.filter(e => e.runId === runId);
       renderTable(filteredExecutions);
+
+      // Configure buttons for the active runId
+      document.getElementById('downloadPdfBtn').onclick = () => {
+          window.location.href = `/pdf?runId=${runId}`;
+      };
     }
 
     function renderTable(data) {
@@ -222,8 +316,6 @@
           <td>${item.status}</td>
           <td>${item.duration}</td>
           <td>${new Date(item.timestamp).toLocaleString()}</td>
-          <td>${item.screenshot ? `<img src="${item.screenshot}" class="screenshot-img" />` : '-'}</td>
-          <td class="error-cell">-</td>
         `;
         tbody.appendChild(tr);
 
@@ -231,7 +323,7 @@
         detailsTr.classList.add('details-row');
         detailsTr.style.display = 'none';
         detailsTr.innerHTML = `
-          <td colspan="7" class="details-content">
+          <td colspan="5" class="details-content">
             <strong>Details:</strong><br/>
             Scenario: ${item.scenario}<br/>
             Status: ${item.status}<br/>
@@ -258,6 +350,39 @@
           }
         };
       });
+    }
+
+    async function deleteSelectedReports() {
+        const selectedRunIds = Array.from(document.querySelectorAll('#runIdContainer input[type="checkbox"]:checked'))
+                                    .map(cb => cb.value);
+
+        if (selectedRunIds.length === 0) {
+            alert('Silinecek en az bir rapor seçmelisiniz.');
+            return;
+        }
+
+        if (confirm(`${selectedRunIds.length} adet raporu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) {
+            try {
+                const response = await fetch(`/executions`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(selectedRunIds)
+                });
+
+                if (response.ok) {
+                    alert('Seçilen raporlar başarıyla silindi.');
+                    location.reload(); // Sayfayı yenile
+                } else {
+                    const errorText = await response.text();
+                    alert(`Raporlar silinirken hata: ${errorText}`);
+                }
+            } catch (error) {
+                console.error('Raporlar silinirken hata oluştu:', error);
+                alert('Raporlar silinirken bir hata oluştu.');
+            }
+        }
     }
 
     // Sayfa yüklenince veriyi çek

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Settings - TestNG Dashboard</title>
+    <th:block th:replace="~{common/header :: head}">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    </th:block>
+    <style>
+        body {
+          background: #f8f9fa;
+          padding: 20px;
+          font-family: Arial, sans-serif;
+          min-height: 100vh;
+          display: flex;
+          overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        #sidebar {
+          width: 250px;
+          background: #fff;
+          color: #000;
+          flex-shrink: 0;
+          border-right: 1px solid #ddd;
+          transition: width 0.3s ease;
+          overflow: hidden;
+          height: 100vh;
+          position: fixed;
+          top: 0;
+          left: 0;
+          z-index: 1050;
+        }
+
+        #sidebar.collapsed {
+          width: 70px;
+        }
+
+        #sidebar .logo {
+          font-size: 1.5rem;
+          padding: 1rem;
+          text-align: center;
+          font-weight: bold;
+          letter-spacing: 2px;
+          border-bottom: 1px solid #ddd;
+          color: #000;
+          transition: font-size 0.3s ease, padding 0.3s ease;
+        }
+
+        #sidebar.collapsed .logo {
+          font-size: 1rem;
+          padding: 0.75rem 0;
+          letter-spacing: 1px;
+        }
+
+        #sidebar.collapsed .logo,
+        #sidebar.collapsed .nav-link span {
+            display: none;
+        }
+
+        #sidebar.collapsed .nav-link.active .vertical-text {
+            display: block;
+        }
+
+        #sidebar.collapsed .nav-link {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 150px;
+        }
+
+        .nav-link .vertical-text {
+            display: none;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 2px;
+            font-size: 1rem;
+        }
+
+        #sidebar .logo {
+          text-align: center;
+          margin-bottom: 1rem;
+        }
+        #sidebar .logo img {
+          max-width: 100%;
+          height: auto;
+        }
+
+        #sidebar .nav-link {
+          color: #000;
+          padding-left: 1rem;
+          white-space: nowrap;
+          transition: padding 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0.75rem 1.5rem;
+          border-radius: 4px;
+          margin: 0.25rem 0.5rem;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        #sidebar .nav-link.active, #sidebar .nav-link:hover {
+          background: #f0f0f0;
+          color: #000;
+          text-decoration: none;
+        }
+
+        #sidebar.collapsed .nav-link {
+          padding-left: 0 !important;
+          justify-content: center;
+        }
+
+        #sidebar .nav-link i {
+          min-width: 20px;
+          text-align: center;
+        }
+
+        #sidebar.collapsed .nav-link span {
+          display: none;
+        }
+
+        /* Main content */
+        #main-content {
+          margin-left: 250px;
+          padding: 20px;
+          transition: margin-left 0.3s ease;
+          width: calc(100% - 250px);
+          overflow-y: auto;
+          min-height: 100vh;
+          background: #f8f9fa;
+        }
+
+        #main-content.collapsed {
+          margin-left: 70px;
+          width: calc(100% - 70px);
+        }
+
+        .toggle-btn-container {
+          position: fixed;
+          top: 20px;
+          left: 260px;
+          z-index: 1051;
+          transition: left 0.3s ease;
+        }
+
+        #main-content.collapsed .toggle-btn-container {
+          left: 80px;
+        }
+
+        .toggle-btn {
+          background: #007bff;
+          color: white;
+          border: none;
+          padding: 0.5rem;
+          border-radius: 4px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+        }
+
+        .toggle-btn:hover {
+          background: #0056b3;
+        }
+    </style>
+</head>
+<body class="d-flex">
+    <!-- Sidebar -->
+    <div th:replace="~{common/sidebar :: sidebar(activePage='settings')}">
+        <!-- Fallback content if sidebar fails to load -->
+        <nav id="sidebar" class="bg-dark text-white">
+            <div class="sidebar-header p-3">
+                <a href="/" class="text-white text-decoration-none">TestNG Dashboard</a>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="/dashboard">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="/reports">Reports</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white active" href="/settings">Settings</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    
+    <!-- Main Content -->
+    <div th:replace="~{common/sidebar :: sidebar(activePage='settings', sidebarCollapsed=false, content=~{::#pageContent})}">
+        <!-- Page Content Fragment -->
+        <div id="pageContent" th:fragment="content">
+            <nav id="sidebar" class="">
+                <div class="header d-flex justify-content-between align-items-center px-3">
+                    <div class="logo">
+                        <img th:src="${settings != null ? settings.logoUrl : '/logo.png'}" 
+                             alt="Company Logo" 
+                             th:style="'max-width: ' + ${settings != null ? settings.logoWidth : '150'} + 'px; height: ' + ${settings != null ? settings.logoHeight : '50'} + 'px;'"
+                             style="max-width: 100%; height: auto;" />
+    <div id="pageContent" th:fragment="content">
+<nav id="sidebar" class="">
+    <div class="header d-flex justify-content-between align-items-center px-3">
+        <div class="logo">
+            <img th:src="${settings != null ? settings.logoUrl : '/logo.png'}" 
+                 alt="Company Logo" 
+                 th:style="'max-width: ' + ${settings != null ? settings.logoWidth : '150'} + 'px; height: ' + ${settings != null ? settings.logoHeight : '50'} + 'px;'"
+                 style="max-width: 100%; height: auto;" />
+        </div>
+    </div>
+    <ul class="nav flex-column p-2">
+        <li class="nav-item">
+            <a class="nav-link" href="/dashboard">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/reports">
+                <i class="bi bi-file-earmark-text"></i>
+                <span>Reports</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" href="/settings">
+                <i class="bi bi-gear"></i>
+                <span>Settings</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<!-- Main content -->
+<div id="main-content" class="w-100">
+    <div class="toggle-btn-container">
+        <button class="toggle-btn" id="sidebarToggle" aria-label="Toggle Menu">
+            <i class="bi bi-list"></i>
+        </button>
+    </div>
+
+    <div class="container-fluid">
+        <h1 class="mt-4">Email Settings</h1>
+        <p>Configure SMTP settings for sending daily test reports.</p>
+
+        <div id="alert-placeholder"></div>
+
+        <form id="settings-form" th:object="${settings != null ? settings : new dashboard.model.EmailSettings()}" enctype="multipart/form-data">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">SMTP Server Configuration</h5>
+                    <div class="mb-3">
+                        <label for="smtpHost" class="form-label">SMTP Host</label>
+                        <input type="text" class="form-control" id="smtpHost" th:field="*{smtpHost}" placeholder="smtp.example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="smtpPort" class="form-label">SMTP Port</label>
+                        <input type="number" class="form-control" id="smtpPort" th:field="*{smtpPort}" placeholder="587">
+                    </div>
+                    <div class="mb-3">
+                        <label for="smtpUser" class="form-label">SMTP Username</label>
+                        <input type="text" class="form-control" id="smtpUser" th:field="*{smtpUser}" placeholder="your-email@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="smtpPassword" class="form-label">SMTP Password</label>
+                        <input type="password" class="form-control" id="smtpPassword" th:field="*{smtpPassword}">
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="useTls" th:field="*{useTls}">
+                        <label class="form-check-label" for="useTls">Use TLS</label>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="card-title">Notification Settings</h5>
+                    <div class="mb-3">
+                        <label for="fromEmail" class="form-label">From Email</label>
+                        <input type="email" class="form-control" id="fromEmail" th:field="*{fromEmail}" placeholder="no-reply@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="toEmail" class="form-label">Recipient Emails (comma-separated)</label>
+                        <input type="text" class="form-control" id="toEmail" th:field="*{toEmail}" placeholder="user1@example.com, user2@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="sendTime" class="form-label">Time to Send (HH:mm)</label>
+                        <input type="time" class="form-control" id="sendTime" th:field="*{sendTime}">
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="sendEmail" th:field="*{sendEmail}">
+                        <label class="form-check-label" for="sendEmail">Enable Daily Email Reports</label>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="card-title">Logo Settings</h5>
+                    <div class="mb-3">
+                        <label for="logoUrl" class="form-label">Logo URL</label>
+                        <input type="text" class="form-control" id="logoUrl" th:field="*{logoUrl}" placeholder="/path/to/logo.png">
+                        <div class="form-text">Enter the URL or path of your logo image</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="logoWidth" class="form-label">Logo Width (px)</label>
+                                <input type="number" class="form-control" id="logoWidth" th:field="*{logoWidth}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="logoHeight" class="form-label">Logo Height (px)</label>
+                                <input type="number" class="form-control" id="logoHeight" th:field="*{logoHeight}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="logoFile" class="form-label">Upload New Logo</label>
+                        <input type="file" class="form-control" id="logoFile" name="logoFile" accept="image/*">
+                        <div class="form-text">Leave empty to keep current logo.</div>
+                             alt="Logo Preview" 
+                             class="img-thumbnail mt-2"
+                             style="max-height: 100px; display: block;">
+                            <script th:inline="javascript">
+                                // Add cache busting to logo image
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const logo = document.getElementById('logoPreview');
+                                    if (logo && logo.src) {
+                                        logo.src = logo.src.split('?')[0] + '?v=' + new Date().getTime();
+                                    }
+                                });
+                            </script>
+                        </div>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const logo = document.getElementById('logoPreview');
+                                if (logo && logo.src) {
+                                    logo.src = logo.src.split('?')[0] + '?v=' + new Date().getTime();
+                                }
+                            });
+                        </script>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <!-- Common Scripts -->
+    <th:block th:replace="~{common/header :: scripts}" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Settings Page Scripts -->
+    <script>
+        // Handle logo preview
+        document.getElementById('logoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('logoPreview').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle form submission with AJAX
+        document.getElementById('settings-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                showAlert('Settings saved successfully!', 'success');
+                // Update logo preview if it was changed
+                if (document.getElementById('logoFile').files.length > 0) {
+                    document.getElementById('logoPreview').src = data.logoUrl + '?t=' + new Date().getTime();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error saving settings: ' + error.message, 'danger');
+            });
+        });
+
+        // Show alert function
+        function showAlert(message, type) {
+            const alertPlaceholder = document.getElementById('alert-placeholder');
+            const alert = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            alertPlaceholder.innerHTML = alert;
+        }
+    </script>
+<script>
+    // Toggle sidebar
+    document.getElementById('sidebarToggle').addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('main-content').classList.toggle('collapsed');
+    });
+
+    // Logo preview
+    document.getElementById('logoFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('logoPreview');
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Handle form submission
+    document.getElementById('settings-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const formData = new FormData(form);
+        
+        // Add logo dimensions to form data
+        const logoPreview = document.getElementById('logoPreview');
+        if (logoPreview) {
+            formData.append('logoWidth', logoPreview.naturalWidth || 150);
+            formData.append('logoHeight', logoPreview.naturalHeight || 50);
+        }
+        
+        // Explicitly handle checkboxes since unchecked checkboxes aren't included in FormData
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            if (!formData.has(checkbox.name)) {
+                formData.append(checkbox.name, 'false');
+            } else {
+                formData.set(checkbox.name, 'true');
+            }
+        });
+        
+        // Show loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        
+        try {
+            const response = await fetch('/api/settings', {
+                method: 'POST',
+                body: formData
+                // Don't set Content-Type header, let the browser set it with the boundary
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to save settings');
+            }
+            
+            const data = await response.json();
+            showAlert('Settings saved successfully!', 'success');
+            
+            // Update the logo preview URL to force refresh
+            if (logoPreview) {
+                const timestamp = new Date().getTime();
+                const currentSrc = logoPreview.src.split('?')[0];
+                logoPreview.src = `${currentSrc}?v=${timestamp}`;
+            }
+        } catch (error) {
+            console.error('Error details:', error);
+            let errorMessage = 'Error saving settings';
+            try {
+                const errorData = JSON.parse(error.message);
+                errorMessage = errorData.message || errorMessage;
+            } catch (e) {
+                errorMessage = error.message || errorMessage;
+            }
+            showAlert(errorMessage, 'danger');
+        } finally {
+            // Restore button state
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalButtonText;
+        }
+    });
+
+    // Show alert function
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const alertPlaceholder = document.getElementById('alert-placeholder');
+        alertPlaceholder.innerHTML = '';
+        alertPlaceholder.appendChild(alertDiv);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (alertDiv && alertDiv.classList) {
+                alertDiv.classList.remove('show');
+                setTimeout(() => {
+                    if (alertDiv && alertDiv.parentNode) {
+                        alertDiv.parentNode.removeChild(alertDiv);
+                    }
+                }, 150);
+            }
+        }, 5000);
+    }
+
+    
+</script>
+
+    </div>
+</div>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Page Specific Scripts -->
+<script th:inline="javascript">
+    // Logo preview
+    document.getElementById('logoFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const logoPreview = document.getElementById('logoPreview');
+                if (logoPreview) {
+                    logoPreview.src = e.target.result;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Form submission with AJAX
+    document.getElementById('settings-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('/api/settings', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Settings saved successfully!', 'success');
+                // Update logo preview if logo URL changed
+                const newLogoUrl = document.getElementById('logoUrl').value;
+                if (newLogoUrl) {
+                    document.querySelectorAll('.sidebar-logo').forEach(logo => {
+                        logo.src = newLogoUrl + '?v=' + new Date().getTime();
+                    });
+                }
+            } else {
+                showAlert('Error saving settings: ' + (data.message || 'Unknown error'), 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('An error occurred while saving settings', 'danger');
+        });
+    });
+
+    // Show alert function
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const alertPlaceholder = document.getElementById('alert-placeholder');
+        alertPlaceholder.innerHTML = '';
+        alertPlaceholder.appendChild(alertDiv);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alertDiv);
+            bsAlert.close();
+        }, 5000);
+    }
+</script>
+    <!-- Common Scripts -->
+    <th:block th:replace="~{common/header :: scripts}"></th:block>
+    
+    <!-- Settings Page Specific Scripts -->
+    <script>
+        // Handle logo preview
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoFileInput = document.getElementById('logoFile');
+            if (logoFileInput) {
+                logoFileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const logoPreview = document.getElementById('logoPreview');
+                            if (logoPreview) {
+                                logoPreview.src = e.target.result;
+                                logoPreview.style.display = 'block';
+                            }
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // Handle form submission with AJAX
+            const settingsForm = document.getElementById('settings-form');
+            if (settingsForm) {
+                settingsForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    
+                    fetch('/api/settings', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        showAlert('Settings saved successfully!', 'success');
+                        // Update logo preview if it was changed
+                        if (document.getElementById('logoFile').files.length > 0) {
+                            const logoPreview = document.getElementById('logoPreview');
+                            if (logoPreview) {
+                                logoPreview.src = data.logoUrl + '?t=' + new Date().getTime();
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showAlert('Error saving settings: ' + error.message, 'danger');
+                    });
+                });
+            }
+
+            // Show alert function
+            function showAlert(message, type) {
+                const alertPlaceholder = document.getElementById('alert-placeholder');
+                if (alertPlaceholder) {
+                    const alert = `
+                        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `;
+                    alertPlaceholder.innerHTML = alert;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
